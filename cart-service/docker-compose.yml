@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  cart-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: cart-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - SERVICE_NAME=cart-service
+      - DATABASE_URL=postgresql://postgres:postgres@cart-db:5432/cart_db?schema=public
+      - REDIS_URL=redis://cart-redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRES_IN=24h
+      - INVENTORY_SERVICE_URL=http://inventory-service:3002
+      - INVENTORY_SERVICE_TIMEOUT=5000
+      - CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
+      - CIRCUIT_BREAKER_TIMEOUT=30000
+      - CIRCUIT_BREAKER_RESET_TIMEOUT=60000
+      - CART_EXPIRATION_DAYS=7
+      - CART_MAX_ITEMS=50
+      - CART_MAX_QUANTITY_PER_ITEM=99
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=json
+    depends_on:
+      cart-db:
+        condition: service_healthy
+      cart-redis:
+        condition: service_healthy
+    networks:
+      - cart-network
+      - ecommerce-network
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  cart-db:
+    image: postgres:15-alpine
+    container_name: cart-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=cart_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - cart-db-data:/var/lib/postgresql/data
+    networks:
+      - cart-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cart_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  cart-redis:
+    image: redis:7-alpine
+    container_name: cart-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - cart-redis-data:/data
+    networks:
+      - cart-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Production build
+  cart-service-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: cart-service-prod
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - SERVICE_NAME=cart-service
+      - DATABASE_URL=postgresql://postgres:postgres@cart-db:5432/cart_db?schema=public
+      - REDIS_URL=redis://cart-redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - INVENTORY_SERVICE_URL=${INVENTORY_SERVICE_URL}
+      - LOG_LEVEL=info
+    depends_on:
+      - cart-db
+      - cart-redis
+    networks:
+      - cart-network
+      - ecommerce-network
+    restart: unless-stopped
+    profiles:
+      - production
+
+volumes:
+  cart-db-data:
+    driver: local
+  cart-redis-data:
+    driver: local
+
+networks:
+  cart-network:
+    driver: bridge
+  ecommerce-network:
+    external: true

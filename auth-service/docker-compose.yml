@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: auth-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - auth-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: auth-service
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      SERVICE_NAME: auth-service
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/auth_db?schema=public
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_REFRESH_SECRET: your-super-secret-refresh-key-change-in-production
+      JWT_ACCESS_EXPIRATION: 15m
+      JWT_REFRESH_EXPIRATION: 7d
+      BCRYPT_SALT_ROUNDS: 12
+      LOG_LEVEL: debug
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma migrate dev --name init && npx prisma db seed && npm run dev"
+    networks:
+      - auth-network
+
+  # Auth Service (Production)
+  auth-service-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: auth-service-prod
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      SERVICE_NAME: auth-service
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/auth_db?schema=public
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_REFRESH_SECRET: your-super-secret-refresh-key-change-in-production
+      JWT_ACCESS_EXPIRATION: 15m
+      JWT_REFRESH_EXPIRATION: 7d
+      BCRYPT_SALT_ROUNDS: 12
+      LOG_LEVEL: info
+    ports:
+      - "3002:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - auth-network
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+
+networks:
+  auth-network:
+    driver: bridge
