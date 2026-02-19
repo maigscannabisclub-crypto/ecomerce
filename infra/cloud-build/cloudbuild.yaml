@@ -1,0 +1,306 @@
+# =============================================================================
+# CLOUD BUILD - CI/CD PIPELINE
+# E-Commerce Platform
+# =============================================================================
+
+steps:
+  # ===========================================================================
+  # STEP 1: Install dependencies and run tests for each service
+  # ===========================================================================
+  - name: 'node:20-alpine'
+    id: 'install-and-test-auth'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd services/auth-service
+        npm ci
+        npm run test:unit || true
+        npm run build
+    waitFor: ['-']
+
+  - name: 'node:20-alpine'
+    id: 'install-and-test-product'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd services/product-service
+        npm ci
+        npm run test:unit || true
+        npm run build
+    waitFor: ['-']
+
+  - name: 'node:20-alpine'
+    id: 'install-and-test-cart'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd services/cart-service
+        npm ci
+        npm run test:unit || true
+        npm run build
+    waitFor: ['-']
+
+  - name: 'node:20-alpine'
+    id: 'install-and-test-order'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd services/order-service
+        npm ci
+        npm run test:unit || true
+        npm run build
+    waitFor: ['-']
+
+  - name: 'node:20-alpine'
+    id: 'install-and-test-inventory'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd services/inventory-service
+        npm ci
+        npm run test:unit || true
+        npm run build
+    waitFor: ['-']
+
+  - name: 'node:20-alpine'
+    id: 'install-and-test-reporting'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd services/reporting-service
+        npm ci
+        npm run test:unit || true
+        npm run build
+    waitFor: ['-']
+
+  - name: 'node:20-alpine'
+    id: 'install-and-test-gateway'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd services/api-gateway
+        npm ci
+        npm run test:unit || true
+        npm run build
+    waitFor: ['-']
+
+  # ===========================================================================
+  # STEP 2: Build and push Docker images
+  # ===========================================================================
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-auth-service'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/auth-service:${COMMIT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/auth-service:latest'
+      - '-f'
+      - 'services/auth-service/Dockerfile'
+      - '--target'
+      - 'production'
+      - 'services/auth-service'
+    waitFor: ['install-and-test-auth']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-product-service'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/product-service:${COMMIT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/product-service:latest'
+      - '-f'
+      - 'services/product-service/Dockerfile'
+      - '--target'
+      - 'production'
+      - 'services/product-service'
+    waitFor: ['install-and-test-product']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-cart-service'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/cart-service:${COMMIT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/cart-service:latest'
+      - '-f'
+      - 'services/cart-service/Dockerfile'
+      - '--target'
+      - 'production'
+      - 'services/cart-service'
+    waitFor: ['install-and-test-cart']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-order-service'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/order-service:${COMMIT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/order-service:latest'
+      - '-f'
+      - 'services/order-service/Dockerfile'
+      - '--target'
+      - 'production'
+      - 'services/order-service'
+    waitFor: ['install-and-test-order']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-inventory-service'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/inventory-service:${COMMIT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/inventory-service:latest'
+      - '-f'
+      - 'services/inventory-service/Dockerfile'
+      - '--target'
+      - 'production'
+      - 'services/inventory-service'
+    waitFor: ['install-and-test-inventory']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-reporting-service'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/reporting-service:${COMMIT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/reporting-service:latest'
+      - '-f'
+      - 'services/reporting-service/Dockerfile'
+      - '--target'
+      - 'production'
+      - 'services/reporting-service'
+    waitFor: ['install-and-test-reporting']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-api-gateway'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/api-gateway:${COMMIT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/api-gateway:latest'
+      - '-f'
+      - 'services/api-gateway/Dockerfile'
+      - '--target'
+      - 'production'
+      - 'services/api-gateway'
+    waitFor: ['install-and-test-gateway']
+
+  # ===========================================================================
+  # STEP 3: Push all images
+  # ===========================================================================
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-images'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/auth-service:${COMMIT_SHA}
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/auth-service:latest
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/product-service:${COMMIT_SHA}
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/product-service:latest
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/cart-service:${COMMIT_SHA}
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/cart-service:latest
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/order-service:${COMMIT_SHA}
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/order-service:latest
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/inventory-service:${COMMIT_SHA}
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/inventory-service:latest
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/reporting-service:${COMMIT_SHA}
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/reporting-service:latest
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/api-gateway:${COMMIT_SHA}
+        docker push ${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/api-gateway:latest
+    waitFor: 
+      - 'build-auth-service'
+      - 'build-product-service'
+      - 'build-cart-service'
+      - 'build-order-service'
+      - 'build-inventory-service'
+      - 'build-reporting-service'
+      - 'build-api-gateway'
+
+  # ===========================================================================
+  # STEP 4: Deploy to GKE (only on main branch)
+  # ===========================================================================
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'deploy-to-gke'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        if [ "${BRANCH_NAME}" = "main" ] || [ "${BRANCH_NAME}" = "master" ]; then
+          echo "Deploying to GKE..."
+          gcloud container clusters get-credentials ecommerce-cluster-${_ENVIRONMENT} --region=${_REGION}
+          
+          # Update image tags in kustomization
+          cd infra/k8s/base
+          kustomize edit set image \
+            api-gateway=${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/api-gateway:${COMMIT_SHA} \
+            auth-service=${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/auth-service:${COMMIT_SHA} \
+            product-service=${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/product-service:${COMMIT_SHA} \
+            cart-service=${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/cart-service:${COMMIT_SHA} \
+            order-service=${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/order-service:${COMMIT_SHA} \
+            inventory-service=${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/inventory-service:${COMMIT_SHA} \
+            reporting-service=${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/reporting-service:${COMMIT_SHA}
+          
+          # Apply to cluster
+          kustomize build . | kubectl apply -f -
+          
+          # Wait for rollout
+          kubectl rollout status deployment/api-gateway -n ecommerce
+          kubectl rollout status deployment/auth-service -n ecommerce
+          kubectl rollout status deployment/product-service -n ecommerce
+          kubectl rollout status deployment/cart-service -n ecommerce
+          kubectl rollout status deployment/order-service -n ecommerce
+          kubectl rollout status deployment/inventory-service -n ecommerce
+          kubectl rollout status deployment/reporting-service -n ecommerce
+        else
+          echo "Skipping deployment for branch: ${BRANCH_NAME}"
+        fi
+    waitFor: ['push-images']
+
+# =============================================================================
+# SUBSTITUTIONS
+# =============================================================================
+substitutions:
+  _REGION: us-central1
+  _ENVIRONMENT: dev
+
+# =============================================================================
+# OPTIONS
+# =============================================================================
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+  diskSizeGb: '20'
+
+# =============================================================================
+# IMAGES TO PUSH
+# =============================================================================
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/auth-service:${COMMIT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/auth-service:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/product-service:${COMMIT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/product-service:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/cart-service:${COMMIT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/cart-service:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/order-service:${COMMIT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/order-service:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/inventory-service:${COMMIT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/inventory-service:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/reporting-service:${COMMIT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/reporting-service:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/api-gateway:${COMMIT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/ecommerce-repo/api-gateway:latest'

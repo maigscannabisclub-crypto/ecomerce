@@ -1,0 +1,72 @@
+---
+# Kustomization para ambiente de producción
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Referencia a la base
+resources:
+  - ../../base
+  - pdb.yaml
+
+# Namespace específico para producción
+namespace: ecommerce
+
+# Labels específicos para producción
+commonLabels:
+  environment: production
+  tier: production
+
+# Imágenes con tag específico para producción (inmutable)
+images:
+  - name: ecommerce/api-gateway
+    newTag: "1.0.0-prod"
+  - name: ecommerce/auth-service
+    newTag: "1.0.0-prod"
+  - name: ecommerce/product-service
+    newTag: "1.0.0-prod"
+  - name: ecommerce/cart-service
+    newTag: "1.0.0-prod"
+  - name: ecommerce/order-service
+    newTag: "1.0.0-prod"
+  - name: ecommerce/inventory-service
+    newTag: "1.0.0-prod"
+  - name: ecommerce/reporting-service
+    newTag: "1.0.0-prod"
+
+# Patches para producción
+patchesStrategicMerge:
+  - replica-count.yaml
+  - resource-limits.yaml
+
+# ConfigMap específico para producción
+configMapGenerator:
+  - name: app-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - APP_ENV=production
+      - CORS_ALLOWED_ORIGINS="https://ecommerce.com,https://admin.ecommerce.com,https://www.ecommerce.com"
+      - RATE_LIMIT_REQUESTS=100
+      - FEATURE_NEW_CHECKOUT=false
+      - FEATURE_BETA_PRODUCTS=false
+      - FEATURE_ADVANCED_REPORTING=true
+
+# Secrets específicos para producción (deben ser gestionados externamente)
+# No incluir valores reales aquí - usar External Secrets Operator o similar
+
+# Replicas para producción
+replicas:
+  - name: api-gateway
+    count: 5
+  - name: auth-service
+    count: 5
+  - name: product-service
+    count: 5
+  - name: cart-service
+    count: 5
+  - name: order-service
+    count: 5
+  - name: inventory-service
+    count: 5
+  - name: reporting-service
+    count: 3

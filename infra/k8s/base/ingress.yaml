@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ecommerce-ingress
+  namespace: ecommerce
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "ecommerce-ip"
+    networking.gke.io/managed-certificates: "ecommerce-cert"
+    networking.gke.io/v1beta1.FrontendConfig: "ecommerce-frontend-config"
+spec:
+  rules:
+    - host: api.ecommerce.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+---
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: ecommerce-frontend-config
+  namespace: ecommerce
+spec:
+  redirectToHttps:
+    enabled: true
+  sslPolicy: gke-ssl-policy
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: ecommerce-cert
+  namespace: ecommerce
+spec:
+  domains:
+    - api.ecommerce.com

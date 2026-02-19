@@ -1,0 +1,111 @@
+---
+# Pod Disruption Budget para API Gateway
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: api-gateway-pdb
+    app.kubernetes.io/component: pdb
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api-gateway
+
+---
+# Pod Disruption Budget para Auth Service
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: auth-service-pdb
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: auth-service-pdb
+    app.kubernetes.io/component: pdb
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: auth-service
+
+---
+# Pod Disruption Budget para Product Service
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: product-service-pdb
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: product-service-pdb
+    app.kubernetes.io/component: pdb
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: product-service
+
+---
+# Pod Disruption Budget para Cart Service
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cart-service-pdb
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: cart-service-pdb
+    app.kubernetes.io/component: pdb
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cart-service
+
+---
+# Pod Disruption Budget para Order Service
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: order-service-pdb
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: order-service-pdb
+    app.kubernetes.io/component: pdb
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: order-service
+
+---
+# Pod Disruption Budget para Inventory Service
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: inventory-service-pdb
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: inventory-service-pdb
+    app.kubernetes.io/component: pdb
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: inventory-service
+
+---
+# Pod Disruption Budget para Reporting Service
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: reporting-service-pdb
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: reporting-service-pdb
+    app.kubernetes.io/component: pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: reporting-service

@@ -1,0 +1,267 @@
+{
+  "rabbit_version": "3.12.0",
+  "rabbitmq_version": "3.12.0",
+  "product_name": "RabbitMQ",
+  "product_version": "3.12.0",
+  "users": [
+    {
+      "name": "admin",
+      "password_hash": "YWRtaW5fcGFzc3dvcmQ=",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": "administrator"
+    },
+    {
+      "name": "ecommerce_user",
+      "password_hash": "ZWNvbW1lcmNlX3Bhc3N3b3Jk",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": "management"
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "/"
+    },
+    {
+      "name": "ecommerce"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "admin",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "user": "admin",
+      "vhost": "ecommerce",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "user": "ecommerce_user",
+      "vhost": "ecommerce",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "topic_permissions": [],
+  "parameters": [],
+  "global_parameters": [
+    {
+      "name": "cluster_name",
+      "value": "rabbit@ecommerce"
+    }
+  ],
+  "policies": [],
+  "queues": [
+    {
+      "name": "inventory.order-created",
+      "vhost": "ecommerce",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "ecommerce.dlx",
+        "x-dead-letter-routing-key": "inventory.order-created.dlq"
+      }
+    },
+    {
+      "name": "inventory.order-failed",
+      "vhost": "ecommerce",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "ecommerce.dlx",
+        "x-dead-letter-routing-key": "inventory.order-failed.dlq"
+      }
+    },
+    {
+      "name": "order.stock-reserved",
+      "vhost": "ecommerce",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "ecommerce.dlx",
+        "x-dead-letter-routing-key": "order.stock-reserved.dlq"
+      }
+    },
+    {
+      "name": "order.stock-reservation-failed",
+      "vhost": "ecommerce",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "ecommerce.dlx",
+        "x-dead-letter-routing-key": "order.stock-reservation-failed.dlq"
+      }
+    },
+    {
+      "name": "reporting.order-completed",
+      "vhost": "ecommerce",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "ecommerce.dlx",
+        "x-dead-letter-routing-key": "reporting.order-completed.dlq"
+      }
+    },
+    {
+      "name": "reporting.order-cancelled",
+      "vhost": "ecommerce",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000,
+        "x-dead-letter-exchange": "ecommerce.dlx",
+        "x-dead-letter-routing-key": "reporting.order-cancelled.dlq"
+      }
+    },
+    {
+      "name": "dlq.inventory.order-created",
+      "vhost": "ecommerce",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "dlq.inventory.order-failed",
+      "vhost": "ecommerce",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "dlq.order.stock-reserved",
+      "vhost": "ecommerce",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "dlq.order.stock-reservation-failed",
+      "vhost": "ecommerce",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "ecommerce.events",
+      "vhost": "ecommerce",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "ecommerce.dlx",
+      "vhost": "ecommerce",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "ecommerce.retry",
+      "vhost": "ecommerce",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "ecommerce.events",
+      "vhost": "ecommerce",
+      "destination": "inventory.order-created",
+      "destination_type": "queue",
+      "routing_key": "order.created",
+      "arguments": {}
+    },
+    {
+      "source": "ecommerce.events",
+      "vhost": "ecommerce",
+      "destination": "inventory.order-failed",
+      "destination_type": "queue",
+      "routing_key": "order.failed",
+      "arguments": {}
+    },
+    {
+      "source": "ecommerce.events",
+      "vhost": "ecommerce",
+      "destination": "order.stock-reserved",
+      "destination_type": "queue",
+      "routing_key": "stock.reserved",
+      "arguments": {}
+    },
+    {
+      "source": "ecommerce.events",
+      "vhost": "ecommerce",
+      "destination": "order.stock-reservation-failed",
+      "destination_type": "queue",
+      "routing_key": "stock.reservation-failed",
+      "arguments": {}
+    },
+    {
+      "source": "ecommerce.events",
+      "vhost": "ecommerce",
+      "destination": "reporting.order-completed",
+      "destination_type": "queue",
+      "routing_key": "order.completed",
+      "arguments": {}
+    },
+    {
+      "source": "ecommerce.events",
+      "vhost": "ecommerce",
+      "destination": "reporting.order-cancelled",
+      "destination_type": "queue",
+      "routing_key": "order.cancelled",
+      "arguments": {}
+    },
+    {
+      "source": "ecommerce.dlx",
+      "vhost": "ecommerce",
+      "destination": "dlq.inventory.order-created",
+      "destination_type": "queue",
+      "routing_key": "inventory.order-created.dlq",
+      "arguments": {}
+    },
+    {
+      "source": "ecommerce.dlx",
+      "vhost": "ecommerce",
+      "destination": "dlq.inventory.order-failed",
+      "destination_type": "queue",
+      "routing_key": "inventory.order-failed.dlq",
+      "arguments": {}
+    },
+    {
+      "source": "ecommerce.dlx",
+      "vhost": "ecommerce",
+      "destination": "dlq.order.stock-reserved",
+      "destination_type": "queue",
+      "routing_key": "order.stock-reserved.dlq",
+      "arguments": {}
+    },
+    {
+      "source": "ecommerce.dlx",
+      "vhost": "ecommerce",
+      "destination": "dlq.order.stock-reservation-failed",
+      "destination_type": "queue",
+      "routing_key": "order.stock-reservation-failed.dlq",
+      "arguments": {}
+    }
+  ]
+}

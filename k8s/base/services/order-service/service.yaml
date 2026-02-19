@@ -1,0 +1,45 @@
+---
+# Service del Order Service - ClusterIP (interno)
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: order-service
+    app.kubernetes.io/component: service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8084
+      targetPort: 8084
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: order-service
+  sessionAffinity: None
+
+---
+# Headless service para descubrimiento de pods
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service-headless
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: order-service
+    app.kubernetes.io/component: service
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8084
+      targetPort: 8084
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: order-service

@@ -1,0 +1,97 @@
+---
+# ConfigMap de configuración general de la aplicación
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: app-config
+    app.kubernetes.io/component: configuration
+data:
+  # Configuración general de la aplicación
+  APP_NAME: "E-Commerce Platform"
+  APP_VERSION: "1.0.0"
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+  
+  # Configuración de timezone
+  TZ: "UTC"
+  
+  # Configuración de puertos
+  API_GATEWAY_PORT: "8080"
+  AUTH_SERVICE_PORT: "8081"
+  PRODUCT_SERVICE_PORT: "8082"
+  CART_SERVICE_PORT: "8083"
+  ORDER_SERVICE_PORT: "8084"
+  INVENTORY_SERVICE_PORT: "8085"
+  REPORTING_SERVICE_PORT: "8086"
+  
+  # Configuración de timeouts
+  HTTP_TIMEOUT: "30s"
+  HTTP_KEEP_ALIVE: "true"
+  HTTP_MAX_CONNECTIONS: "100"
+  
+  # Configuración de JWT
+  JWT_ACCESS_TOKEN_EXPIRY: "15m"
+  JWT_REFRESH_TOKEN_EXPIRY: "7d"
+  JWT_ISSUER: "ecommerce-platform"
+  
+  # Configuración de CORS
+  CORS_ALLOWED_ORIGINS: "https://ecommerce.com,https://admin.ecommerce.com"
+  CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+  CORS_ALLOWED_HEADERS: "Authorization,Content-Type,X-Request-ID"
+  
+  # Configuración de rate limiting
+  RATE_LIMIT_REQUESTS: "100"
+  RATE_LIMIT_WINDOW: "60"
+  
+  # Configuración de health checks
+  HEALTH_CHECK_PATH: "/health"
+  READINESS_CHECK_PATH: "/ready"
+  METRICS_PATH: "/metrics"
+  
+  # URLs de servicios internos
+  AUTH_SERVICE_URL: "http://auth-service:8081"
+  PRODUCT_SERVICE_URL: "http://product-service:8082"
+  CART_SERVICE_URL: "http://cart-service:8083"
+  ORDER_SERVICE_URL: "http://order-service:8084"
+  INVENTORY_SERVICE_URL: "http://inventory-service:8085"
+  REPORTING_SERVICE_URL: "http://reporting-service:8086"
+  
+  # Configuración de Redis
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_POOL_SIZE: "10"
+  
+  # Configuración de RabbitMQ
+  RABBITMQ_HOST: "rabbitmq"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_MANAGEMENT_PORT: "15672"
+  RABBITMQ_VHOST: "/"
+  
+  # Colas de RabbitMQ
+  RABBITMQ_ORDER_QUEUE: "orders"
+  RABBITMQ_INVENTORY_QUEUE: "inventory"
+  RABBITMQ_NOTIFICATION_QUEUE: "notifications"
+  RABBITMQ_REPORTING_QUEUE: "reporting"
+  
+  # Configuración de base de datos
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "ecommerce"
+  DB_SSL_MODE: "require"
+  DB_MAX_OPEN_CONNS: "25"
+  DB_MAX_IDLE_CONNS: "10"
+  DB_CONN_MAX_LIFETIME: "30m"
+  
+  # Configuración de tracing
+  JAEGER_ENABLED: "true"
+  JAEGER_SAMPLER_TYPE: "probabilistic"
+  JAEGER_SAMPLER_PARAM: "0.1"
+  
+  # Configuración de feature flags
+  FEATURE_NEW_CHECKOUT: "false"
+  FEATURE_BETA_PRODUCTS: "false"
+  FEATURE_ADVANCED_REPORTING: "true"

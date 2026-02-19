@@ -1,0 +1,45 @@
+---
+# Service del Auth Service - ClusterIP (interno)
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: auth-service
+    app.kubernetes.io/component: service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: auth-service
+  sessionAffinity: None
+
+---
+# Headless service para descubrimiento de pods
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service-headless
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: auth-service
+    app.kubernetes.io/component: service
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: auth-service

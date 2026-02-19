@@ -1,0 +1,25 @@
+# =============================================================================
+# TERRAFORM VARIABLES - EXAMPLE
+# Copy this file to terraform.tfvars and fill in your values
+# =============================================================================
+
+# GCP Project ID (required)
+project_id = "your-project-id"
+
+# GCP Region
+region = "us-central1"
+zone   = "us-central1-a"
+
+# Environment: dev, staging, prod
+environment = "dev"
+
+# Cloud SQL Configuration
+db_tier     = "db-f1-micro"  # Use db-g1-small for staging, db-n1-standard-1 for prod
+db_password = "your-secure-database-password-here"
+
+# Redis Configuration
+redis_tier = "BASIC"  # Use STANDARD_HA for prod
+
+# GKE Configuration
+gke_node_count   = 3
+gke_machine_type = "e2-medium"  # Use e2-standard-2 for prod

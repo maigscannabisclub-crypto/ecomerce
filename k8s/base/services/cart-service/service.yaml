@@ -1,0 +1,45 @@
+---
+# Service del Cart Service - ClusterIP (interno)
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-service
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: cart-service
+    app.kubernetes.io/component: service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8083
+      targetPort: 8083
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: cart-service
+  sessionAffinity: None
+
+---
+# Headless service para descubrimiento de pods
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-service-headless
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: cart-service
+    app.kubernetes.io/component: service
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8083
+      targetPort: 8083
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: cart-service

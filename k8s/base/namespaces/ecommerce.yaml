@@ -1,0 +1,39 @@
+---
+# Namespace principal para la plataforma e-commerce
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ecommerce
+  labels:
+    app.kubernetes.io/name: ecommerce
+    app.kubernetes.io/component: platform
+    environment: production
+    istio-injection: enabled
+  annotations:
+    description: "Namespace principal para la plataforma e-commerce"
+
+---
+# Namespace para monitoreo
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ecommerce-monitoring
+  labels:
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/component: observability
+    environment: production
+  annotations:
+    description: "Namespace para stack de monitoreo (Prometheus, Grafana)"
+
+---
+# Namespace para infraestructura de datos
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ecommerce-data
+  labels:
+    app.kubernetes.io/name: data-infrastructure
+    app.kubernetes.io/component: database
+    environment: production
+  annotations:
+    description: "Namespace para infraestructura de datos (PostgreSQL, Redis, RabbitMQ)"

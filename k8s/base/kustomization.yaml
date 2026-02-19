@@ -1,0 +1,113 @@
+---
+# Kustomization base para la plataforma e-commerce
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace para todos los recursos
+namespace: ecommerce
+
+# Labels comunes para todos los recursos
+commonLabels:
+  app.kubernetes.io/part-of: ecommerce-platform
+  app.kubernetes.io/managed-by: kustomize
+
+# Anotaciones comunes
+commonAnnotations:
+  deployment.kubernetes.io/revision: "1"
+
+# Recursos a incluir
+resources:
+  # Namespaces
+  - namespaces/ecommerce.yaml
+  
+  # ConfigMaps
+  - configmaps/app-config.yaml
+  - configmaps/db-config.yaml
+  
+  # Secrets (template - requiere valores reales)
+  - secrets/app-secrets.yaml
+  
+  # Services
+  - services/api-gateway/service.yaml
+  - services/auth-service/service.yaml
+  - services/product-service/service.yaml
+  - services/cart-service/service.yaml
+  - services/order-service/service.yaml
+  - services/inventory-service/service.yaml
+  - services/reporting-service/service.yaml
+  
+  # Deployments
+  - deployments/api-gateway.yaml
+  - deployments/auth-service.yaml
+  - deployments/product-service.yaml
+  - deployments/cart-service.yaml
+  - deployments/order-service.yaml
+  - deployments/inventory-service.yaml
+  - deployments/reporting-service.yaml
+  
+  # HPA
+  - hpa/horizontal-pod-autoscalers.yaml
+  
+  # Ingress
+  - ingress/ingress.yaml
+
+# Configuración de imágenes (puede ser sobreescrita en overlays)
+images:
+  - name: ecommerce/api-gateway
+    newTag: "1.0.0"
+  - name: ecommerce/auth-service
+    newTag: "1.0.0"
+  - name: ecommerce/product-service
+    newTag: "1.0.0"
+  - name: ecommerce/cart-service
+    newTag: "1.0.0"
+  - name: ecommerce/order-service
+    newTag: "1.0.0"
+  - name: ecommerce/inventory-service
+    newTag: "1.0.0"
+  - name: ecommerce/reporting-service
+    newTag: "1.0.0"
+
+# ConfigMap generator para configuración adicional
+configMapGenerator:
+  - name: nginx-config
+    literals:
+      - nginx.conf=|
+          server {
+              listen 80;
+              location /health {
+                  access_log off;
+                  return 200 "healthy\n";
+                  add_header Content-Type text/plain;
+              }
+          }
+
+# Secret generator (ejemplo - usar con precaución)
+# secretGenerator:
+#   - name: additional-secrets
+#     literals:
+#       - key=value
+
+# Patches comunes
+patches:
+  # Añadir sidecar de Istio si es necesario
+  - target:
+      kind: Deployment
+      name: .*
+    patch: |
+      - op: add
+        path: /spec/template/metadata/annotations/sidecar.istio.io~1inject
+        value: "true"
+
+# Replacements para configuración dinámica
+replacements:
+  - source:
+      kind: ConfigMap
+      name: app-config
+      fieldPath: data.API_GATEWAY_PORT
+    targets:
+      - select:
+          kind: Service
+          name: api-gateway
+        fieldPaths:
+          - spec.ports.[name=http].targetPort

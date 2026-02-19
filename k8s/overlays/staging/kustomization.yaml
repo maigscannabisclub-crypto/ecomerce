@@ -1,0 +1,77 @@
+---
+# Kustomization para ambiente de staging
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Referencia a la base
+resources:
+  - ../../base
+
+# Namespace específico para staging
+namespace: ecommerce-staging
+
+# Labels específicos para staging
+commonLabels:
+  environment: staging
+  tier: staging
+
+# Nombre del prefijo para recursos
+namePrefix: staging-
+
+# Imágenes con tag específico para staging
+images:
+  - name: ecommerce/api-gateway
+    newTag: staging-1.0.0
+  - name: ecommerce/auth-service
+    newTag: staging-1.0.0
+  - name: ecommerce/product-service
+    newTag: staging-1.0.0
+  - name: ecommerce/cart-service
+    newTag: staging-1.0.0
+  - name: ecommerce/order-service
+    newTag: staging-1.0.0
+  - name: ecommerce/inventory-service
+    newTag: staging-1.0.0
+  - name: ecommerce/reporting-service
+    newTag: staging-1.0.0
+
+# Patches para staging
+patchesStrategicMerge:
+  - replica-count.yaml
+  - resource-limits.yaml
+
+# ConfigMap específico para staging
+configMapGenerator:
+  - name: app-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=info
+      - APP_ENV=staging
+      - CORS_ALLOWED_ORIGINS="https://staging.ecommerce.com"
+      - RATE_LIMIT_REQUESTS=500
+      - FEATURE_NEW_CHECKOUT=true
+      - FEATURE_BETA_PRODUCTS=true
+
+# Secrets específicos para staging
+secretGenerator:
+  - name: app-secrets
+    behavior: merge
+    literals:
+      - JWT_SECRET=staging-jwt-secret-change-in-ci
+
+# Replicas para staging
+replicas:
+  - name: api-gateway
+    count: 3
+  - name: auth-service
+    count: 3
+  - name: product-service
+    count: 3
+  - name: cart-service
+    count: 3
+  - name: order-service
+    count: 3
+  - name: inventory-service
+    count: 3
+  - name: reporting-service
+    count: 2

@@ -1,0 +1,55 @@
+---
+# Service del API Gateway - Expuesto externamente via LoadBalancer
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/component: gateway
+  annotations:
+    # Anotaciones para AWS Load Balancer Controller (si se usa)
+    # service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    # service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    # service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:..."
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: 8080
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: api-gateway
+  sessionAffinity: None
+  publishNotReadyAddresses: false
+
+---
+# Headless service para descubrimiento de pods
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway-headless
+  namespace: ecommerce
+  labels:
+    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/component: gateway
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: api-gateway
