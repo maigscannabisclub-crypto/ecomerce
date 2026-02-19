@@ -1,0 +1,95 @@
+# Grafana Dashboards Provisioning Configuration
+# Auto-provision dashboards for E-commerce Platform
+
+apiVersion: 1
+
+providers:
+  # ==========================================
+  # System Overview Dashboard
+  # ==========================================
+  - name: 'System Overview'
+    orgId: 1
+    folder: 'Infrastructure'
+    folderUid: 'infrastructure'
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/system-overview.json
+
+  # ==========================================
+  # Service Metrics Dashboards
+  # ==========================================
+  - name: 'Service Metrics'
+    orgId: 1
+    folder: 'Services'
+    folderUid: 'services'
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/service-metrics.json
+
+  # ==========================================
+  # Business Metrics Dashboard
+  # ==========================================
+  - name: 'Business Metrics'
+    orgId: 1
+    folder: 'Business'
+    folderUid: 'business'
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 60
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/business-metrics.json
+
+  # ==========================================
+  # Kubernetes Dashboards (if applicable)
+  # ==========================================
+  - name: 'Kubernetes'
+    orgId: 1
+    folder: 'Kubernetes'
+    folderUid: 'k8s'
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/kubernetes.json
+
+  # ==========================================
+  # Database Dashboard
+  # ==========================================
+  - name: 'Database'
+    orgId: 1
+    folder: 'Infrastructure'
+    folderUid: 'infrastructure'
+    type: file
+    disableDeletion: false
+    editable: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/database.json
+
+  # ==========================================
+  # Custom Dashboards Directory
+  # ==========================================
+  - name: 'Custom Dashboards'
+    orgId: 1
+    folder: 'Custom'
+    folderUid: 'custom'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 60
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

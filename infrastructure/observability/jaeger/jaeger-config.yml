@@ -1,0 +1,196 @@
+# Jaeger Configuration for E-commerce Platform
+# Distributed tracing configuration
+
+# Collector configuration
+collector:
+  # Zipkin compatibility
+  zipkin:
+    keep-alive: true
+    host-port: :9411
+  
+  # OTLP configuration
+  otlp:
+    enabled: true
+    grpc:
+      host-port: :4317
+      max-connection-age: 0
+      max-connection-age-grace: 0
+      keepalive:
+        time: 7200s
+        timeout: 20s
+        enforcement-policy:
+          min-time: 5m
+          permit-without-stream: true
+    http:
+      host-port: :4318
+      cors:
+        allowed-origins: ["*"]
+        allowed-headers: ["*"]
+  
+  # Queue configuration
+  queue-size: 2000
+  num-workers: 50
+
+# Agent configuration (for UDP-based clients)
+agent:
+  reporter:
+    grpc:
+      host-port: jaeger-collector:14250
+      retry:
+        max: 3
+      tls:
+        enabled: false
+    log-spans: false
+  
+  processors:
+    - model: jaeger
+      protocol: compact
+      server:
+        host-port: :6831
+      workers: 10
+      queue-size: 1000
+    - model: jaeger
+      protocol: binary
+      server:
+        host-port: :6832
+      workers: 10
+      queue-size: 1000
+    - model: zipkin
+      protocol: zipkin-thrift
+      server:
+        host-port: :5775
+      workers: 10
+      queue-size: 1000
+
+# Storage configuration (using Elasticsearch)
+storage:
+  type: elasticsearch
+  elasticsearch:
+    # Server URLs
+    server-urls: http://elasticsearch:9200
+    
+    # Index configuration
+    index-prefix: jaeger
+    index-date-separator: "-"
+    index-rollover-frequency: "day"
+    
+    # Authentication
+    username: ${ES_USERNAME:-}
+    password: ${ES_PASSWORD:-}
+    
+    # TLS configuration
+    tls:
+      enabled: false
+      ca: ""
+      cert: ""
+      key: ""
+      skip-host-verify: false
+    
+    # Bulk processing
+    bulk:
+      size: 5000000
+      workers: 1
+      flush-interval: 200ms
+      actions: 1000
+    
+    # Query configuration
+    timeout: 120s
+    max-num-spans: 10000
+    max-doc-count: 10000
+    max-span-age: 72h
+    
+    # Sniffer configuration
+    sniffer:
+      enabled: false
+      timeouts:
+        initial: 5s
+        periodic: 15m
+    
+    # Version configuration
+    version: 7
+    create-index-templates: true
+    index-templates-path: /usr/share/jaeger/config/index-templates
+    
+    # Service cache
+    service-cache:
+      ttl: 12h
+      capacity: 10000
+    
+    # Archive configuration
+    archive:
+      enabled: true
+
+# Query service configuration
+query:
+  # UI configuration
+  ui:
+    base-path: /
+    assets-path: /usr/share/jaeger-ui
+    log-access: false
+    
+  # API configuration
+  api:
+    port: 16686
+    host: 0.0.0.0
+    prefix: /api
+    
+  # Static files
+  static-files: /usr/share/jaeger-ui
+  
+  # Query timeout
+  timeout: 30s
+  
+  # Max clock skew adjustment
+  max-clock-skew-adjustment: 1s
+
+# Sampling configuration
+sampling:
+  # Adaptive sampling
+  adaptive:
+    enabled: true
+    
+  # Remote sampling
+  remote:
+    enabled: true
+    
+  # Strategies file
+  strategies-file: /etc/jaeger/sampling-strategies.json
+
+# Metrics configuration
+metrics:
+  backend: prometheus
+  prometheus:
+    server-url: http://prometheus:9090
+    
+  # Additional labels
+  additional-labels:
+    cluster: ecommerce-platform
+    environment: production
+
+# Health check configuration
+health-check:
+  http:
+    host-port: :14269
+
+# Admin configuration
+admin:
+  http:
+    host-port: :14270
+
+# Logging configuration
+log:
+  level: info
+  format: json
+  output: stdout
+
+# Tracing configuration (self-tracing)
+tracing:
+  enabled: false
+  
+# Resource attributes
+resource:
+  attributes:
+    service.name: jaeger
+    service.version: 1.45.0
+    deployment.environment: production
+    host.name: ${HOSTNAME}

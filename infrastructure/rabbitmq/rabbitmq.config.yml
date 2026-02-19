@@ -1,0 +1,220 @@
+## ============================================================
+# RabbitMQ Configuration for E-Commerce Platform
+# Production-Ready Configuration
+## ============================================================
+
+# =============================================================================
+# NETWORKING CONFIGURATION
+# =============================================================================
+listeners.tcp.default = 5672
+listeners.ssl.default = 5671
+management.tcp.port = 15672
+management.ssl.port = 15671
+
+# =============================================================================
+# SSL/TLS CONFIGURATION (Production)
+# =============================================================================
+# ssl_options.cacertfile = /etc/rabbitmq/ssl/ca.crt
+# ssl_options.certfile = /etc/rabbitmq/ssl/server.crt
+# ssl_options.keyfile = /etc/rabbitmq/ssl/server.key
+# ssl_options.verify = verify_peer
+# ssl_options.fail_if_no_peer_cert = false
+
+# =============================================================================
+# AUTHENTICATION & AUTHORIZATION
+# =============================================================================
+auth_mechanisms.1 = PLAIN
+auth_mechanisms.2 = AMQPLAIN
+auth_mechanisms.3 = SCRAM-SHA-256
+
+# Default user (should be changed in production)
+default_user = guest
+default_pass = guest
+
+# User permissions
+loopback_users.guest = false
+
+# =============================================================================
+# MEMORY & DISK CONFIGURATION
+# =============================================================================
+# Memory threshold - trigger flow control when 70% of RAM is used
+vm_memory_high_watermark.relative = 0.7
+
+# Disk free space limit - pause producers when less than 2GB free
+disk_free_limit.absolute = 2GB
+
+# =============================================================================
+# MESSAGE STORE CONFIGURATION
+# =============================================================================
+# Message TTL (24 hours = 86400000 ms)
+# Applied via policies, see definitions.json
+
+# Queue length limits
+max_message_size = 16777216  # 16MB max message size
+
+# =============================================================================
+# FLOW CONTROL & THROTTLING
+# =============================================================================
+# Credit flow settings for better throughput
+credit_flow_default_credit.ratio = 0.5
+
+# =============================================================================
+# CONNECTION CONFIGURATION
+# =============================================================================
+# Maximum connections
+max_connections = 10000
+
+# Connection heartbeat (seconds)
+heartbeat = 60
+
+# Connection handshake timeout (milliseconds)
+handshake_timeout = 10000
+
+# Channel max per connection
+channel_max = 2047
+
+# =============================================================================
+# QUEUE CONFIGURATION
+# =============================================================================
+# Lazy queues for better memory usage
+queue_master_locator = min-masters
+
+# Queue index settings
+queue_index_embed_msgs_below = 4096
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+log.console = true
+log.console.level = info
+log.file.level = warning
+log.exchange = true
+log.exchange.level = error
+
+# Log file rotation
+log.file.rotation.size = 104857600  # 100MB
+log.file.rotation.count = 10
+
+# =============================================================================
+# CLUSTERING CONFIGURATION
+# =============================================================================
+# Cluster partition handling strategy
+cluster_partition_handling = autoheal
+
+# Cluster keepalive
+cluster_keepalive_interval = 10000
+
+# =============================================================================
+# MANAGEMENT PLUGIN CONFIGURATION
+# =============================================================================
+management.sample_retention_policies.global.minute = 5
+management.sample_retention_policies.global.hour = 60
+management.sample_retention_policies.global.day = 1200
+
+management.sample_retention_policies.basic.minute = 5
+management.sample_retention_policies.basic.hour = 60
+
+management.sample_retention_policies.detailed.10 = 5
+
+# Management statistics interval
+management.stats_event_max_backlog = 250
+
+# =============================================================================
+# PLUGINS CONFIGURATION
+# =============================================================================
+# Enable required plugins
+# These will be enabled via rabbitmq-plugins command in init.sh
+
+# =============================================================================
+# PERFORMANCE TUNING
+# =============================================================================
+# Number of Erlang processes to use for I/O
+# io_thread_pool_size = 128
+
+# Erlang scheduler settings
+# erlang.schedulers.utilization_balancing = true
+
+# =============================================================================
+# FEDERATION & SHOVEL (For multi-region setups)
+# =============================================================================
+# federation.upstream_set.local = all
+# shovel.name = ecommerce-shovel
+
+# =============================================================================
+# LOAD DEFINITIONS ON STARTUP
+# =============================================================================
+# This will load exchanges, queues, bindings, users, and policies
+load_definitions = /etc/rabbitmq/definitions.json
+
+# =============================================================================
+# ADDITIONAL SETTINGS
+# =============================================================================
+# Disable classic queue mirroring for new queues (use quorum queues instead)
+# classic_queue_mirroring = none
+
+# Consumer timeout (30 minutes)
+consumer_timeout = 1800000
+
+# Delivery acknowledgement timeout
+# delivery_ack_timeout = 30000
+
+# =============================================================================
+# E-COMMERCE SPECIFIC CONFIGURATION
+# =============================================================================
+
+# Prefetch count for consumers (applied at channel level)
+# This is set per-consumer in application code, but we set defaults here
+
+# Dead letter exchange configuration
+# Applied via queue arguments in definitions.json
+
+# Retry policy configuration
+# Retry delays: 5s, 30s, 5m (configured in definitions.json)
+
+# Message priorities
+# Priority levels: 0-10 (configured in queue arguments)
+
+# =============================================================================
+# MONITORING & OBSERVABILITY
+# =============================================================================
+# Enable Prometheus metrics (if plugin installed)
+# prometheus.return_per_object_metrics = true
+
+# Enable tracing for debugging (disable in production)
+# tracing.pattern = #
+
+# =============================================================================
+# SECURITY SETTINGS
+# =============================================================================
+# Password hashing algorithm
+password_hashing_module = rabbit_password_hashing_sha256
+
+# Connection rate limiting
+# connection_max = 1000
+
+# Channel operation rate limiting
+# channel_max_per_connection = 100
+
+# =============================================================================
+# BACKUP & RECOVERY
+# =============================================================================
+# Mnesia directory for database files
+# mnesia_table_loading_retry_timeout = 15000
+# mnesia_table_loading_retry_limit = 10
+
+# =============================================================================
+# ADVANCED CONFIGURATION
+# =============================================================================
+# Message store settings
+msg_store_index_module = rabbit_msg_store_ets_index
+msg_store_file_size_limit = 16777216
+
+# Queue master location
+queue_master_locator = min-masters
+
+# Lazy queue threshold
+lazy_queue_explicit_gc_run_operation_threshold = 1000
+
+# =============================================================================
+# END OF CONFIGURATION
+# =============================================================================

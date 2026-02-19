@@ -1,0 +1,174 @@
+{
+  "service_strategies": [
+    {
+      "service": "api-gateway",
+      "type": "probabilistic",
+      "param": 0.1,
+      "operation_strategies": [
+        {
+          "operation": "/health",
+          "type": "probabilistic",
+          "param": 0.01
+        },
+        {
+          "operation": "/metrics",
+          "type": "probabilistic",
+          "param": 0.001
+        },
+        {
+          "operation": "/api/v1/orders",
+          "type": "probabilistic",
+          "param": 0.5
+        },
+        {
+          "operation": "/api/v1/payments",
+          "type": "probabilistic",
+          "param": 0.5
+        }
+      ]
+    },
+    {
+      "service": "user-service",
+      "type": "probabilistic",
+      "param": 0.1,
+      "operation_strategies": [
+        {
+          "operation": "GET /users/{id}",
+          "type": "probabilistic",
+          "param": 0.1
+        },
+        {
+          "operation": "POST /users/register",
+          "type": "probabilistic",
+          "param": 0.5
+        },
+        {
+          "operation": "POST /users/login",
+          "type": "probabilistic",
+          "param": 0.5
+        }
+      ]
+    },
+    {
+      "service": "product-service",
+      "type": "probabilistic",
+      "param": 0.05,
+      "operation_strategies": [
+        {
+          "operation": "GET /products",
+          "type": "probabilistic",
+          "param": 0.01
+        },
+        {
+          "operation": "GET /products/{id}",
+          "type": "probabilistic",
+          "param": 0.05
+        },
+        {
+          "operation": "POST /products",
+          "type": "probabilistic",
+          "param": 0.5
+        }
+      ]
+    },
+    {
+      "service": "order-service",
+      "type": "probabilistic",
+      "param": 0.5,
+      "operation_strategies": [
+        {
+          "operation": "POST /orders",
+          "type": "probabilistic",
+          "param": 1.0
+        },
+        {
+          "operation": "GET /orders/{id}",
+          "type": "probabilistic",
+          "param": 0.3
+        },
+        {
+          "operation": "PUT /orders/{id}/status",
+          "type": "probabilistic",
+          "param": 0.5
+        }
+      ]
+    },
+    {
+      "service": "payment-service",
+      "type": "probabilistic",
+      "param": 0.5,
+      "operation_strategies": [
+        {
+          "operation": "POST /payments/process",
+          "type": "probabilistic",
+          "param": 1.0
+        },
+        {
+          "operation": "POST /payments/refund",
+          "type": "probabilistic",
+          "param": 1.0
+        },
+        {
+          "operation": "GET /payments/{id}/status",
+          "type": "probabilistic",
+          "param": 0.3
+        }
+      ]
+    },
+    {
+      "service": "inventory-service",
+      "type": "probabilistic",
+      "param": 0.1,
+      "operation_strategies": [
+        {
+          "operation": "GET /inventory/{productId}",
+          "type": "probabilistic",
+          "param": 0.05
+        },
+        {
+          "operation": "POST /inventory/reserve",
+          "type": "probabilistic",
+          "param": 0.5
+        },
+        {
+          "operation": "POST /inventory/release",
+          "type": "probabilistic",
+          "param": 0.5
+        }
+      ]
+    },
+    {
+      "service": "notification-service",
+      "type": "probabilistic",
+      "param": 0.1,
+      "operation_strategies": [
+        {
+          "operation": "POST /notifications/email",
+          "type": "probabilistic",
+          "param": 0.3
+        },
+        {
+          "operation": "POST /notifications/sms",
+          "type": "probabilistic",
+          "param": 0.3
+        }
+      ]
+    }
+  ],
+  "default_strategy": {
+    "type": "probabilistic",
+    "param": 0.1,
+    "operation_strategies": [
+      {
+        "operation": "/health",
+        "type": "probabilistic",
+        "param": 0.01
+      },
+      {
+        "operation": "/metrics",
+        "type": "probabilistic",
+        "param": 0.001
+      }
+    ]
+  }
+}

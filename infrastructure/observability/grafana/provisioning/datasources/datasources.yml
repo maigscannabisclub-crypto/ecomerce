@@ -1,0 +1,136 @@
+# Grafana Datasources Configuration
+# Auto-provisioned datasources for E-commerce Platform
+
+apiVersion: 1
+
+datasources:
+  # ==========================================
+  # Prometheus - Primary metrics source
+  # ==========================================
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST
+      manageAlerts: true
+      prometheusType: Prometheus
+      prometheusVersion: 2.47.0
+      cacheLevel: 'High'
+      incrementalQuerying: true
+      incrementalQueryOverlapWindow: 10m
+      alertmanagerUid: alertmanager
+    secureJsonData: {}
+
+  # ==========================================
+  # Loki - Log aggregation
+  # ==========================================
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - name: TraceID
+          matcherRegex: '"trace_id":"([^"]+)"'
+          url: '$${__value.raw}'
+          datasourceUid: jaeger
+          urlDisplayLabel: 'View Trace'
+        - name: UserID
+          matcherRegex: '"user_id":"([^"]+)"'
+          urlDisplayLabel: 'User: $${__value.raw}'
+        - name: OrderID
+          matcherRegex: '"order_id":"([^"]+)"'
+          urlDisplayLabel: 'Order: $${__value.raw}'
+      alertmanagerUid: alertmanager
+
+  # ==========================================
+  # Jaeger - Distributed tracing
+  # ==========================================
+  - name: Jaeger
+    type: jaeger
+    uid: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    editable: false
+    jsonData:
+      tracesToLogs:
+        datasourceUid: loki
+        tags: ['service', 'pod', 'namespace']
+        mappedTags: [{ key: 'service', value: 'service_name' }]
+        mapTagNamesEnabled: false
+        spanStartTimeShift: '1h'
+        spanEndTimeShift: '1h'
+        filterByTraceID: true
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: prometheus
+        tags: [{ key: 'service', value: 'service_name' }]
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      options:
+        maxNumberOfTrace: 100
+
+  # ==========================================
+  # Tempo - Alternative tracing (optional)
+  # ==========================================
+  # - name: Tempo
+  #   type: tempo
+  #   access: proxy
+  #   url: http://tempo:3200
+  #   editable: false
+
+  # ==========================================
+  # Alertmanager - Alert management
+  # ==========================================
+  - name: Alertmanager
+    type: alertmanager
+    uid: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    editable: false
+    jsonData:
+      implementation: prometheus
+
+  # ==========================================
+  # PostgreSQL - Business metrics queries
+  # ==========================================
+  - name: PostgreSQL-Business
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: ecommerce_analytics
+    user: grafana_reader
+    editable: false
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 10
+      maxIdleConns: 5
+      connMaxLifetime: 14400
+    secureJsonData:
+      password: ${GRAFANA_DB_PASSWORD}
+
+  # ==========================================
+  # Redis - Cache metrics
+  # ==========================================
+  - name: Redis
+    type: redis-datasource
+    access: proxy
+    url: redis:6379
+    editable: false
+    jsonData:
+      client: standalone
+      pooling:
+        poolSize: 5
+        timeout: 10
+        minIdleConnections: 1
+      acl: false
+    secureJsonData:
+      password: ${REDIS_PASSWORD}

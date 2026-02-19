@@ -1,0 +1,86 @@
+{
+  "version": "3.12.0",
+  "policies": [
+    {
+      "vhost": "ecommerce",
+      "name": "ha-all",
+      "pattern": "^.*",
+      "apply-to": "queues",
+      "definition": {
+        "ha-mode": "all",
+        "ha-sync-mode": "automatic"
+      },
+      "priority": 0
+    },
+    {
+      "vhost": "ecommerce",
+      "name": "ttl-messages",
+      "pattern": "^.*",
+      "apply-to": "queues",
+      "definition": {
+        "message-ttl": 86400000
+      },
+      "priority": 1
+    },
+    {
+      "vhost": "ecommerce",
+      "name": "max-length",
+      "pattern": "^.*",
+      "apply-to": "queues",
+      "definition": {
+        "max-length": 100000,
+        "overflow": "reject-publish-dlx"
+      },
+      "priority": 2
+    },
+    {
+      "vhost": "ecommerce",
+      "name": "lazy-queues",
+      "pattern": "^.*",
+      "apply-to": "queues",
+      "definition": {
+        "queue-mode": "lazy"
+      },
+      "priority": 3
+    },
+    {
+      "vhost": "ecommerce",
+      "name": "delivery-limit",
+      "pattern": "^.*",
+      "apply-to": "queues",
+      "definition": {
+        "delivery-limit": 3
+      },
+      "priority": 4
+    },
+    {
+      "vhost": "ecommerce",
+      "name": "max-length-bytes",
+      "pattern": "^.*",
+      "apply-to": "queues",
+      "definition": {
+        "max-length-bytes": 1073741824,
+        "overflow": "reject-publish-dlx"
+      },
+      "priority": 5
+    }
+  ],
+  "parameters": [
+    {
+      "component": "federation-upstream",
+      "name": "upstream-ecommerce",
+      "value": {
+        "uri": "amqp://guest:guest@backup-rabbitmq:5672/ecommerce",
+        "ack-mode": "on-confirm",
+        "trust-user-id": false
+      },
+      "vhost": "ecommerce"
+    }
+  ],
+  "global_parameters": [
+    {
+      "name": "cluster_name",
+      "value": "rabbit@ecommerce-rabbitmq"
+    }
+  ]
+}

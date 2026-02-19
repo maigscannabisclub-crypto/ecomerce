@@ -1,0 +1,393 @@
+# Prometheus Alert Rules for E-commerce Platform
+# Production-ready alerting configuration
+
+groups:
+  # ==========================================
+  # Service Availability Alerts
+  # ==========================================
+  - name: service_availability
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up{job=~"api-gateway|user-service|product-service|order-service|payment-service|inventory-service|notification-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute. Instance: {{ $labels.instance }}"
+          runbook_url: "https://wiki.internal/runbooks/service-down"
+          action: "Check service logs and restart if necessary"
+
+      - alert: ServiceUnresponsive
+        expr: up{job=~"api-gateway|user-service|product-service|order-service|payment-service|inventory-service|notification-service"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Service {{ $labels.job }} is unresponsive"
+          description: "Service {{ $labels.job }} has been unresponsive for more than 5 minutes. Immediate action required."
+          action: "Escalate to on-call engineer immediately"
+
+  # ==========================================
+  # Error Rate Alerts
+  # ==========================================
+  - name: error_rates
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_request_errors_total[5m])) by (service)
+            /
+            sum(rate(http_requests_total[5m])) by (service)
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          category: errors
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for service {{ $labels.service }} in the last 5 minutes"
+          threshold: "5%"
+          action: "Check application logs for errors"
+
+      - alert: CriticalErrorRate
+        expr: |
+          (
+            sum(rate(http_request_errors_total[5m])) by (service)
+            /
+            sum(rate(http_requests_total[5m])) by (service)
+          ) > 0.10
+        for: 1m
+        labels:
+          severity: critical
+          category: errors
+        annotations:
+          summary: "Critical error rate on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for service {{ $labels.service }}. Immediate attention required!"
+          threshold: "10%"
+          action: "Stop deployments and investigate immediately"
+
+      - alert: PaymentServiceErrors
+        expr: |
+          (
+            sum(rate(http_request_errors_total{service="payment-service"}[5m]))
+            /
+            sum(rate(http_requests_total{service="payment-service"}[5m]))
+          ) > 0.01
+        for: 1m
+        labels:
+          severity: critical
+          category: errors
+        annotations:
+          summary: "Payment service experiencing errors"
+          description: "Payment service error rate is {{ $value | humanizePercentage }}. This may affect revenue!"
+          action: "Check payment gateway integration immediately"
+
+  # ==========================================
+  # Latency Alerts
+  # ==========================================
+  - name: latency
+    interval: 30s
+    rules:
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High latency on {{ $labels.service }}"
+          description: "95th percentile latency is {{ $value }}s for service {{ $labels.service }}"
+          threshold: "500ms"
+          action: "Check database queries and optimize slow endpoints"
+
+      - alert: CriticalLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)) > 1.0
+        for: 2m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: "Critical latency on {{ $labels.service }}"
+          description: "95th percentile latency is {{ $value }}s for service {{ $labels.service }}. User experience severely impacted!"
+          threshold: "1000ms"
+          action: "Consider scaling or circuit breaker activation"
+
+      - alert: DatabaseSlowQueries
+        expr: histogram_quantile(0.95, sum(rate(database_query_duration_seconds_bucket[5m])) by (le)) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query duration is {{ $value }}s"
+          threshold: "100ms"
+          action: "Review slow query log and add indexes if needed"
+
+  # ==========================================
+  # Resource Usage Alerts
+  # ==========================================
+  - name: resource_usage
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% for instance {{ $labels.instance }}"
+          threshold: "80%"
+          action: "Consider scaling horizontally or vertically"
+
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: resources
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% for instance {{ $labels.instance }}"
+          threshold: "95%"
+          action: "Scale immediately or investigate runaway processes"
+
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+          ) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}% for instance {{ $labels.instance }}"
+          threshold: "85%"
+          action: "Check for memory leaks or scale resources"
+
+      - alert: CriticalMemoryUsage
+        expr: |
+          (
+            node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+          ) / node_memory_MemTotal_bytes * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: resources
+        annotations:
+          summary: "Critical memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}% for instance {{ $labels.instance }}. OOM risk!"
+          threshold: "95%"
+          action: "Immediate scaling or service restart required"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk space is below 10% on {{ $labels.instance }}"
+          action: "Clean up logs or expand storage"
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 5
+        for: 1m
+        labels:
+          severity: critical
+          category: resources
+        annotations:
+          summary: "Critical disk space on {{ $labels.instance }}"
+          description: "Disk space is below 5% on {{ $labels.instance }}. System may become unstable!"
+          action: "Immediate cleanup or storage expansion required"
+
+  # ==========================================
+  # Database Alerts
+  # ==========================================
+  - name: database
+    interval: 30s
+    rules:
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL instance {{ $labels.instance }} is not responding"
+          action: "Check PostgreSQL service and logs immediately"
+
+      - alert: PostgreSQLConnectionsHigh
+        expr: |
+          (
+            pg_stat_activity_count{datname=~"ecommerce.*"}
+            /
+            pg_settings_max_connections
+          ) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "High PostgreSQL connection usage"
+          description: "PostgreSQL connection usage is {{ $value | humanizePercentage }}"
+          action: "Check connection pool settings or scale database"
+
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance {{ $labels.instance }} is not responding"
+          action: "Check Redis service and logs immediately"
+
+      - alert: RedisMemoryHigh
+        expr: |
+          (
+            redis_memory_used_bytes
+            /
+            redis_memory_max_bytes
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+          action: "Review cache eviction policy or increase memory"
+
+  # ==========================================
+  # Queue/Message Alerts
+  # ==========================================
+  - name: message_queue
+    interval: 30s
+    rules:
+      - alert: MessageQueueHigh
+        expr: message_queue_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+          category: queue
+        annotations:
+          summary: "Message queue backlog on {{ $labels.queue }}"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages pending"
+          action: "Check consumer health and processing rate"
+
+      - alert: MessageQueueCritical
+        expr: message_queue_size > 5000
+        for: 2m
+        labels:
+          severity: critical
+          category: queue
+        annotations:
+          summary: "Critical message queue backlog"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages pending. Processing severely delayed!"
+          action: "Scale consumers or investigate processing failures"
+
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_group_lag > 10000
+        for: 10m
+        labels:
+          severity: warning
+          category: queue
+        annotations:
+          summary: "High Kafka consumer lag"
+          description: "Consumer group {{ $labels.group }} has lag of {{ $value }} on topic {{ $labels.topic }}"
+          action: "Scale consumers or optimize processing logic"
+
+  # ==========================================
+  # Business Metrics Alerts
+  # ==========================================
+  - name: business_metrics
+    interval: 1m
+    rules:
+      - alert: OrderDrop
+        expr: |
+          (
+            sum(rate(orders_created_total[1h]))
+            /
+            sum(rate(orders_created_total[1h] offset 1d))
+          ) < 0.5
+        for: 15m
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "Significant drop in orders"
+          description: "Order creation rate dropped by {{ $value | humanizePercentage }} compared to yesterday"
+          action: "Check for checkout issues or payment problems"
+
+      - alert: PaymentFailureRate
+        expr: |
+          (
+            sum(rate(payments_failed_total[15m]))
+            /
+            sum(rate(payments_total[15m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          category: business
+        annotations:
+          summary: "High payment failure rate"
+          description: "Payment failure rate is {{ $value | humanizePercentage }}"
+          action: "Check payment gateway status and investigate failures"
+
+      - alert: AbandonedCartsHigh
+        expr: |
+          (
+            sum(carts_abandoned_total)
+            /
+            sum(carts_created_total)
+          ) > 0.7
+        for: 30m
+        labels:
+          severity: warning
+          category: business
+        annotations:
+          summary: "High cart abandonment rate"
+          description: "Cart abandonment rate is {{ $value | humanizePercentage }}"
+          action: "Review checkout flow and pricing"
+
+  # ==========================================
+  # Security Alerts
+  # ==========================================
+  - name: security
+    interval: 30s
+    rules:
+      - alert: HighRateOfFailedLogins
+        expr: sum(rate(login_failed_total[5m])) by (ip) > 10
+        for: 2m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "Possible brute force attack from {{ $labels.ip }}"
+          description: "High rate of failed login attempts ({{ $value }}/sec) from IP {{ $labels.ip }}"
+          action: "Consider blocking IP and reviewing security logs"
+
+      - alert: SuspiciousAPIActivity
+        expr: sum(rate(http_requests_total{status=~"4.."}[5m])) by (ip) > 50
+        for: 2m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "Suspicious API activity from {{ $labels.ip }}"
+          description: "High rate of 4xx responses ({{ $value }}/sec) from IP {{ $labels.ip }}"
+          action: "Review WAF logs and consider rate limiting"
