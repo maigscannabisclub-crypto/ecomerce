@@ -1,0 +1,169 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # Reporting Service
+  # ============================================
+  reporting-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: reporting-service
+    ports:
+      - "3006:3006"
+    environment:
+      NODE_ENV: production
+      PORT: 3006
+      SERVICE_NAME: reporting-service
+      DATABASE_URL: postgresql://postgres:postgres@reporting-db:5432/reporting_db?schema=public
+      REDIS_URL: redis://reporting-redis:6379
+      RABBITMQ_URL: amqp://guest:guest@reporting-rabbitmq:5672
+      RABBITMQ_EXCHANGE: ecommerce.events
+      RABBITMQ_QUEUE: reporting-service-queue
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      LOG_LEVEL: info
+      CACHE_TTL_DASHBOARD: 900
+      CACHE_TTL_REPORT: 3600
+      CACHE_TTL_METRICS: 300
+    depends_on:
+      reporting-db:
+        condition: service_healthy
+      reporting-redis:
+        condition: service_healthy
+      reporting-rabbitmq:
+        condition: service_healthy
+    networks:
+      - reporting-network
+      - ecommerce-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3006/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  reporting-db:
+    image: postgres:16-alpine
+    container_name: reporting-db
+    ports:
+      - "5436:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: reporting_db
+    volumes:
+      - reporting-db-data:/var/lib/postgresql/data
+      - ./prisma/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - reporting-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d reporting_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ============================================
+  # Redis Cache
+  # ============================================
+  reporting-redis:
+    image: redis:7-alpine
+    container_name: reporting-redis
+    ports:
+      - "6386:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - reporting-redis-data:/data
+    networks:
+      - reporting-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ============================================
+  # RabbitMQ Message Broker
+  # ============================================
+  reporting-rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: reporting-rabbitmq
+    ports:
+      - "5676:5672"
+      - "15676:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - reporting-rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - reporting-network
+      - ecommerce-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ============================================
+  # Development Service (optional)
+  # ============================================
+  reporting-service-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: reporting-service-dev
+    ports:
+      - "3006:3006"
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      SERVICE_NAME: reporting-service
+      DATABASE_URL: postgresql://postgres:postgres@reporting-db:5432/reporting_db?schema=public
+      REDIS_URL: redis://reporting-redis:6379
+      RABBITMQ_URL: amqp://guest:guest@reporting-rabbitmq:5672
+      RABBITMQ_EXCHANGE: ecommerce.events
+      RABBITMQ_QUEUE: reporting-service-queue
+      JWT_SECRET: dev-jwt-secret
+      LOG_LEVEL: debug
+      CACHE_TTL_DASHBOARD: 60
+      CACHE_TTL_REPORT: 120
+      CACHE_TTL_METRICS: 60
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - reporting-db
+      - reporting-redis
+      - reporting-rabbitmq
+    networks:
+      - reporting-network
+      - ecommerce-network
+    profiles:
+      - dev
+    command: npm run dev
+
+volumes:
+  reporting-db-data:
+    driver: local
+  reporting-redis-data:
+    driver: local
+  reporting-rabbitmq-data:
+    driver: local
+
+networks:
+  reporting-network:
+    driver: bridge
+  ecommerce-network:
+    external: true

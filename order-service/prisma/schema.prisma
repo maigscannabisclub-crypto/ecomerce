@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String      @unique
+  userId          String
+  userEmail       String
+  status          OrderStatus @default(PENDING)
+  items           OrderItem[]
+  total           Decimal     @db.Decimal(10, 2)
+  tax             Decimal     @default(0) @db.Decimal(10, 2)
+  shipping        Decimal     @default(0) @db.Decimal(10, 2)
+  grandTotal      Decimal     @db.Decimal(10, 2)
+  shippingAddress Json?
+  billingAddress  Json?
+  notes           String?
+  paidAt          DateTime?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  statusHistory   OrderStatusHistory[]
+  outboxEvents    OutboxEvent[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  productName String
+  productSku  String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  subtotal    Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderStatusHistory {
+  id             String      @id @default(uuid())
+  orderId        String
+  order          Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status         OrderStatus
+  previousStatus OrderStatus?
+  notes          String?
+  createdBy      String?
+  createdAt      DateTime    @default(now())
+  
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model OutboxEvent {
+  id          String    @id @default(uuid())
+  eventType   String
+  aggregateId String
+  payload     Json
+  published   Boolean   @default(false)
+  retryCount  Int       @default(0)
+  error       String?
+  createdAt   DateTime  @default(now())
+  publishedAt DateTime?
+  
+  @@index([published])
+  @@index([eventType])
+  @@index([aggregateId])
+  @@index([createdAt])
+}
+
+enum OrderStatus {
+  PENDING
+  RESERVED
+  CONFIRMED
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  FAILED
+}

@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # Order Service
+  order-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: order-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@order-db:5432/order_db?schema=public
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - RABBITMQ_EXCHANGE=orders.exchange
+      - RABBITMQ_QUEUE=orders.queue
+      - RABBITMQ_RETRY_QUEUE=orders.retry.queue
+      - RABBITMQ_DLQ=orders.dlq
+      - INVENTORY_SERVICE_URL=http://inventory-service:3002
+      - CART_SERVICE_URL=http://cart-service:3003
+      - USER_SERVICE_URL=http://user-service:3001
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRES_IN=24h
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+      - MAX_RETRIES=3
+      - RETRY_DELAY_MS=1000
+      - OUTBOX_PROCESSOR_INTERVAL_MS=5000
+      - OUTBOX_MAX_RETRIES=3
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      order-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3004/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database
+  order-db:
+    image: postgres:15-alpine
+    container_name: order-db
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=order_db
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: order-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis (for caching - optional)
+  redis:
+    image: redis:7-alpine
+    container_name: order-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  order-db-data:
+  rabbitmq-data:
+  redis-data:
+
+networks:
+  ecommerce-network:
+    driver: bridge
+    name: ecommerce-network
