@@ -1,0 +1,187 @@
+# Docker Compose for Testing Environment
+# Entorno de testing con todos los servicios necesarios
+
+version: '3.8'
+
+services:
+  # PostgreSQL for tests
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres-test
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: ecommerce_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d ecommerce_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Redis for tests
+  redis-test:
+    image: redis:7-alpine
+    container_name: ecommerce-redis-test
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-test-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # RabbitMQ for tests
+  rabbitmq-test:
+    image: rabbitmq:3.12-alpine-management
+    container_name: ecommerce-rabbitmq-test
+    environment:
+      RABBITMQ_DEFAULT_USER: test
+      RABBITMQ_DEFAULT_PASS: test
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    volumes:
+      - rabbitmq-test-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # MongoDB for tests (if needed)
+  mongodb-test:
+    image: mongo:6-jammy
+    container_name: ecommerce-mongodb-test
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: test
+      MONGO_INITDB_ROOT_PASSWORD: test
+      MONGO_INITDB_DATABASE: ecommerce_test
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb-test-data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Elasticsearch for tests (if needed)
+  elasticsearch-test:
+    image: elasticsearch:8.8.0
+    container_name: ecommerce-elasticsearch-test
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9201:9200"
+    volumes:
+      - elasticsearch-test-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Test runner service
+  test-runner:
+    build:
+      context: ..
+      dockerfile: testing/Dockerfile.test
+    container_name: ecommerce-test-runner
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://test:test@postgres-test:5432/ecommerce_test
+      - REDIS_URL=redis://redis-test:6379
+      - RABBITMQ_URL=amqp://test:test@rabbitmq-test:5672
+      - MONGODB_URL=mongodb://test:test@mongodb-test:27017/ecommerce_test
+      - ELASTICSEARCH_URL=http://elasticsearch-test:9200
+    volumes:
+      - ..:/app
+      - /app/node_modules
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      rabbitmq-test:
+        condition: service_healthy
+    networks:
+      - test-network
+    command: ["npm", "run", "test:integration"]
+
+  # Pact Broker (for contract testing)
+  pact-broker:
+    image: pactfoundation/pact-broker:2.112.0-pactbroker2.107.1
+    container_name: ecommerce-pact-broker
+    ports:
+      - "9292:9292"
+    environment:
+      PACT_BROKER_DATABASE_ADAPTER: sqlite
+      PACT_BROKER_DATABASE_NAME: pact_broker.sqlite
+      PACT_BROKER_WEBHOOK_SCHEME_WHITELIST: http https
+      PACT_BROKER_BASE_URL: http://localhost:9292
+    volumes:
+      - pact-broker-data:/tmp
+    networks:
+      - test-network
+
+  # Prometheus for metrics
+  prometheus-test:
+    image: prom/prometheus:v2.47.0
+    container_name: ecommerce-prometheus-test
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus-test.yml:/etc/prometheus/prometheus.yml
+      - prometheus-test-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - test-network
+
+  # Grafana for dashboards
+  grafana-test:
+    image: grafana/grafana:10.1.0
+    container_name: ecommerce-grafana-test
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-test-data:/var/lib/grafana
+    networks:
+      - test-network
+
+volumes:
+  postgres-test-data:
+  redis-test-data:
+  rabbitmq-test-data:
+  mongodb-test-data:
+  elasticsearch-test-data:
+  pact-broker-data:
+  prometheus-test-data:
+  grafana-test-data:
+
+networks:
+  test-network:
+    driver: bridge

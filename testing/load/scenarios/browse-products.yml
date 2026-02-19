@@ -1,0 +1,102 @@
+# Browse Products Load Test
+# Simula usuarios navegando por productos
+
+config:
+  target: '{{ $processEnvironment.TARGET_URL || "http://localhost:3001" }}'
+  
+  phases:
+    # Escenario 1: 1000 usuarios concurrentes navegando
+    - name: '1000 concurrent users browsing'
+      duration: 300
+      arrivalRate: 100
+      rampTo: 200
+    
+    # Escenario 2: Pico de tráfico
+    - name: 'Traffic spike'
+      duration: 60
+      arrivalRate: 500
+    
+    # Escenario 3: Carga sostenida
+    - name: 'Sustained browsing'
+      duration: 600
+      arrivalRate: 100
+
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+
+  plugins:
+    ensure:
+      thresholds:
+        - http.response_time.p95: 200
+        - http.response_time.p99: 500
+    
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+
+scenarios:
+  - name: 'Browse product catalog'
+    flow:
+      # Listar productos
+      - get:
+          url: '/api/v1/products'
+          qs:
+            page: 1
+            limit: 24
+          capture:
+            - json: '$.products'
+              as: 'products'
+      
+      - think: 2
+      
+      # Ver detalle de producto aleatorio
+      - function: 'selectRandomProduct'
+      
+      - get:
+          url: '/api/v1/products/{{ selectedProductId }}'
+      
+      - think: 3
+      
+      # Filtrar por categoría
+      - get:
+          url: '/api/v1/products'
+          qs:
+            category: '{{ $randomItem(["electronics", "clothing", "home"]) }}'
+            page: 1
+            limit: 12
+      
+      - think: 2
+      
+      # Buscar productos
+      - get:
+          url: '/api/v1/products'
+          qs:
+            search: '{{ $randomItem(["laptop", "phone", "headphones", "watch"]) }}'
+            page: 1
+            limit: 12
+
+  - name: 'Product pagination'
+    flow:
+      - loop:
+          - get:
+              url: '/api/v1/products'
+              qs:
+                page: '{{ $loopCount }}'
+                limit: 24
+          - think: 1
+        count: 5
+
+  - name: 'View product with reviews'
+    flow:
+      - get:
+          url: '/api/v1/products/550e8400-e29b-41d4-a716-446655440001'
+      
+      - think: 2
+      
+      - get:
+          url: '/api/v1/products/550e8400-e29b-41d4-a716-446655440001/reviews'
+      
+      - think: 3
+      
+      - get:
+          url: '/api/v1/products/550e8400-e29b-41d4-a716-446655440001/related'

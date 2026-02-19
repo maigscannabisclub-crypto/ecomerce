@@ -1,0 +1,267 @@
+# Chaos Engineering Experiments
+# Experimentos de caos para validar resiliencia del sistema
+
+# Configuración global
+config:
+  # Duración de cada experimento (segundos)
+  experiment_duration: 300
+  
+  # Tiempo de recuperación entre experimentos (segundos)
+  recovery_time: 60
+  
+  # Namespace de Kubernetes donde se ejecutan los servicios
+  k8s_namespace: 'ecommerce'
+  
+  # Servicios objetivo
+  target_services:
+    - name: 'order-service'
+      deployment: 'order-service'
+      replicas: 3
+    - name: 'product-service'
+      deployment: 'product-service'
+      replicas: 3
+    - name: 'inventory-service'
+      deployment: 'inventory-service'
+      replicas: 2
+    - name: 'payment-service'
+      deployment: 'payment-service'
+      replicas: 2
+    - name: 'user-service'
+      deployment: 'user-service'
+      replicas: 2
+
+# Experimentos de caos
+experiments:
+  # Experimento 1: Matar pods de inventory-service
+  - name: 'pod-failure-inventory'
+    type: 'pod-failure'
+    target:
+      service: 'inventory-service'
+      namespace: 'ecommerce'
+    parameters:
+      # Porcentaje de pods a matar
+      kill_percentage: 50
+      # Duración del experimento
+      duration: 120
+      # Intervalo entre kills (segundos)
+      interval: 30
+    hypothesis: |
+      El sistema debe continuar funcionando con el 50% de los pods de inventory-service caídos.
+      Los circuit breakers deben activarse después de 5 fallos consecutivos.
+      Los retries deben intentar 3 veces antes de fallar.
+    success_criteria:
+      - 'order-service debe responder con < 500ms de latencia p95'
+      - 'Las órdenes deben procesarse con éxito > 95%'
+      - 'Los circuit breakers deben estar en estado OPEN después de 5 fallos'
+    rollback:
+      action: 'scale-deployment'
+      replicas: 2
+
+  # Experimento 2: Delay de red
+  - name: 'network-delay-payment'
+    type: 'network-delay'
+    target:
+      service: 'payment-service'
+      namespace: 'ecommerce'
+    parameters:
+      # Delay en milisegundos
+      delay: 5000
+      # Variación del delay (±ms)
+      jitter: 1000
+      # Porcentaje de tráfico afectado
+      percentage: 100
+      duration: 180
+    hypothesis: |
+      Con un delay de 5 segundos en payment-service:
+      - Los timeouts deben activarse después de 3 segundos
+      - Los circuit breakers deben abrirse después de 5 timeouts
+      - Las órdenes deben fallar gracefulmente
+    success_criteria:
+      - 'Las órdenes con timeout deben recibir error 504'
+      - 'El circuit breaker debe abrirse después de 5 fallos'
+      - 'No debe haber deadlocks en el sistema'
+    rollback:
+      action: 'remove-delay'
+
+  # Experimento 3: Partición de red
+  - name: 'network-partition-order-inventory'
+    type: 'network-partition'
+    target:
+      service_a: 'order-service'
+      service_b: 'inventory-service'
+      namespace: 'ecommerce'
+    parameters:
+      duration: 120
+      direction: 'both'  # both, ingress, egress
+    hypothesis: |
+      Cuando order-service no puede comunicarse con inventory-service:
+      - Las órdenes deben fallar con error de inventario no disponible
+      - Los circuit breakers deben abrirse
+      - No debe haber pérdida de datos
+    success_criteria:
+      - 'Las órdenes deben fallar con error 503'
+      - 'El circuit breaker debe estar en estado OPEN'
+      - 'Los mensajes en cola deben persistir'
+    rollback:
+      action: 'restore-network'
+
+  # Experimento 4: Stress de CPU
+  - name: 'cpu-stress-product'
+    type: 'cpu-stress'
+    target:
+      service: 'product-service'
+      namespace: 'ecommerce'
+    parameters:
+      # Porcentaje de CPU a consumir
+      cpu_percentage: 80
+      # Número de workers
+      workers: 4
+      duration: 180
+    hypothesis: |
+      Bajo estrés de CPU del 80%:
+      - El servicio debe seguir respondiendo
+      - El HPA debe escalar el deployment
+      - Las respuestas pueden ser más lentas pero no deben fallar
+    success_criteria:
+      - 'El servicio debe mantener disponibilidad > 90%'
+      - 'HPA debe escalar a más de 3 réplicas'
+      - 'Latencia p95 < 2000ms'
+    rollback:
+      action: 'stop-stress'
+
+  # Experimento 5: Stress de memoria
+  - name: 'memory-stress-user'
+    type: 'memory-stress'
+    target:
+      service: 'user-service'
+      namespace: 'ecommerce'
+    parameters:
+      # Cantidad de memoria a consumir (MB)
+      memory_mb: 512
+      # Duración
+      duration: 120
+    hypothesis: |
+      Bajo estrés de memoria:
+      - El servicio debe manejar OOM gracefulmente
+      - Kubernetes debe reiniciar el pod
+      - Las sesiones de usuario deben persistir (usando Redis)
+    success_criteria:
+      - 'El pod debe reiniciarse automáticamente'
+      - 'Las sesiones deben persistir después del reinicio'
+      - 'El servicio debe recuperarse en < 60 segundos'
+    rollback:
+      action: 'stop-stress'
+
+  # Experimento 6: Caída de base de datos
+  - name: 'database-failure'
+    type: 'pod-failure'
+    target:
+      service: 'postgres-primary'
+      namespace: 'ecommerce'
+    parameters:
+      kill_percentage: 100
+      duration: 60
+    hypothesis: |
+      Cuando la base de datos principal cae:
+      - Las lecturas deben ir al replica
+      - Las escrituras deben fallar con error 503
+      - El sistema debe intentar reconectar automáticamente
+    success_criteria:
+      - 'Las lecturas deben funcionar usando el replica'
+      - 'Las escrituras deben fallar con error apropiado'
+      - 'El sistema debe reconectar cuando la DB vuelva'
+    rollback:
+      action: 'restart-pod'
+
+  # Experimento 7: Caída de RabbitMQ
+  - name: 'rabbitmq-failure'
+    type: 'pod-failure'
+    target:
+      service: 'rabbitmq'
+      namespace: 'ecommerce'
+    parameters:
+      kill_percentage: 50
+      duration: 120
+    hypothesis: |
+      Cuando RabbitMQ tiene problemas:
+      - Los mensajes deben encolarse localmente
+      - Los productores deben usar backoff exponencial
+      - Los mensajes no deben perderse
+    success_criteria:
+      - 'Los mensajes deben persistir en cola local'
+      - 'El backoff debe aumentar progresivamente'
+      - 'Los mensajes deben procesarse cuando RabbitMQ vuelva'
+    rollback:
+      action: 'scale-deployment'
+      replicas: 3
+
+  # Experimento 8: Latencia variable
+  - name: 'variable-latency'
+    type: 'network-latency'
+    target:
+      service: 'order-service'
+      namespace: 'ecommerce'
+    parameters:
+      # Latencia base
+      latency: 100
+      # Variación (jitter)
+      jitter: 2000
+      # Correlación (0-100)
+      correlation: 50
+      duration: 180
+    hypothesis: |
+      Con latencia variable (100ms ± 2000ms):
+      - Los timeouts deben configurarse apropiadamente
+      - El circuit breaker debe responder a latencias altas
+      - El sistema debe ser estable
+    success_criteria:
+      - 'Las respuestas deben completarse sin errores de conexión'
+      - 'El circuit breaker debe activarse en latencias > 2s'
+      - 'No debe haber timeouts prematuros'
+    rollback:
+      action: 'remove-latency'
+
+  # Experimento 9: Packet loss
+  - name: 'packet-loss'
+    type: 'packet-loss'
+    target:
+      service: 'payment-service'
+      namespace: 'ecommerce'
+    parameters:
+      # Porcentaje de pérdida de paquetes
+      percentage: 10
+      duration: 120
+    hypothesis: |
+      Con 10% de pérdida de paquetes:
+      - TCP debe retransmitir automáticamente
+      - Las operaciones idempotentes deben funcionar
+      - Los retries deben manejar las retransmisiones
+    success_criteria:
+      - 'Las transacciones deben completarse > 95%'
+      - 'No debe haber transacciones duplicadas'
+      - 'Los retries deben ser efectivos'
+    rollback:
+      action: 'remove-packet-loss'
+
+  # Experimento 10: DNS failure
+  - name: 'dns-failure'
+    type: 'dns-failure'
+    target:
+      namespace: 'ecommerce'
+    parameters:
+      # Servicios a los que bloquear DNS
+      blocked_services:
+        - 'inventory-service'
+        - 'payment-service'
+      duration: 60
+    hypothesis: |
+      Cuando el DNS falla para servicios críticos:
+      - Las conexiones existentes deben seguir funcionando
+      - Las nuevas conexiones deben fallar rápidamente
+      - El circuit breaker debe abrirse
+    success_criteria:
+      - 'Las conexiones existentes no deben verse afectadas'
+      - 'Las nuevas conexiones deben fallar inmediatamente'
+      - 'El circuit breaker debe estar en OPEN'
+    rollback:
+      action: 'restore-dns'

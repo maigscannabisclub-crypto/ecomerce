@@ -1,0 +1,42 @@
+{
+  "name": "ecommerce-platform",
+  "version": "1.0.0",
+  "description": "E-Commerce Platform - Microservices Architecture - Google Cloud Ready",
+  "private": true,
+  "scripts": {
+    "setup": "./scripts/setup.sh",
+    "dev": "docker-compose -f docker-compose.dev.yml up --build",
+    "start": "docker-compose up --build -d",
+    "stop": "docker-compose down",
+    "test": "./scripts/run-tests.sh",
+    "test:unit": "npm run test -- --selectProjects unit",
+    "test:integration": "npm run test -- --selectProjects integration",
+    "test:coverage": "npm run test -- --coverage",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "build": "npm run build --workspaces",
+    "migrate": "./scripts/migrate.sh",
+    "seed": "./scripts/seed.sh",
+    "health": "./scripts/health-check.sh",
+    "clean": "./scripts/cleanup.sh",
+    "deploy:gcp": "./scripts/deploy-gcp.sh",
+    "tf:init": "cd infra/terraform && terraform init",
+    "tf:plan": "cd infra/terraform && terraform plan",
+    "tf:apply": "cd infra/terraform && terraform apply"
+  },
+  "workspaces": [
+    "services/*",
+    "shared/*"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

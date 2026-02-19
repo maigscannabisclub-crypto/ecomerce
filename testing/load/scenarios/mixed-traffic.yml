@@ -1,0 +1,117 @@
+# Mixed Traffic Load Test
+# Pico de tráfico: 5000 requests/segundo
+
+config:
+  target: '{{ $processEnvironment.TARGET_URL || "http://localhost:3001" }}'
+  
+  phases:
+    # Fase 1: Calentamiento
+    - name: 'Warm up'
+      duration: 60
+      arrivalRate: 10
+    
+    # Fase 2: Aumento gradual
+    - name: 'Ramp up'
+      duration: 120
+      arrivalRate: 10
+      rampTo: 100
+    
+    # Fase 3: Pico de tráfico - 5000 requests/segundo
+    - name: 'Peak traffic - 5000 RPS'
+      duration: 60
+      arrivalRate: 5000
+    
+    # Fase 4: Carga sostenida alta
+    - name: 'High sustained load'
+      duration: 300
+      arrivalRate: 1000
+    
+    # Fase 5: Disminución gradual
+    - name: 'Ramp down'
+      duration: 120
+      arrivalRate: 1000
+      rampTo: 10
+    
+    # Fase 6: Enfriamiento
+    - name: 'Cool down'
+      duration: 60
+      arrivalRate: 10
+
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+
+  plugins:
+    ensure:
+      thresholds:
+        - http.response_time.p95: 500
+        - http.response_time.p99: 1000
+        - http.requests.rate: 100
+    
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+    
+    publish-metrics:
+      - type: prometheus
+        host: '{{ $processEnvironment.PROMETHEUS_HOST || "localhost" }}'
+        port: 9090
+        prefix: 'artillery_peak_'
+
+scenarios:
+  # Escenario 1: Navegación (60% del tráfico)
+  - name: 'Browse products'
+    weight: 60
+    flow:
+      - get:
+          url: '/api/v1/products'
+          qs:
+            page: '{{ $randomInt(1, 10) }}'
+            limit: 24
+      
+      - think: '{{ $randomInt(1, 3) }}'
+
+  # Escenario 2: Búsqueda (20% del tráfico)
+  - name: 'Search products'
+    weight: 20
+    flow:
+      - get:
+          url: '/api/v1/products'
+          qs:
+            search: '{{ $randomItem(["laptop", "phone", "headphones", "watch", "tablet", "camera"]) }}'
+            page: 1
+            limit: 20
+      
+      - think: '{{ $randomInt(2, 5) }}'
+
+  # Escenario 3: Ver detalles de producto (10% del tráfico)
+  - name: 'View product details'
+    weight: 10
+    flow:
+      - get:
+          url: '/api/v1/products/{{ $randomItem(["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002", "550e8400-e29b-41d4-a716-446655440003"]) }}'
+      
+      - think: '{{ $randomInt(3, 8) }}'
+
+  # Escenario 4: Health checks (5% del tráfico)
+  - name: 'Health check'
+    weight: 5
+    flow:
+      - get:
+          url: '/health'
+
+  # Escenario 5: API de autenticación (3% del tráfico)
+  - name: 'Authentication'
+    weight: 3
+    flow:
+      - post:
+          url: '/api/v1/auth/login'
+          json:
+            email: 'test@example.com'
+            password: 'testpassword'
+
+  # Escenario 6: Verificar stock (2% del tráfico)
+  - name: 'Check inventory'
+    weight: 2
+    flow:
+      - get:
+          url: '/api/v1/inventory/{{ $randomItem(["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002"]) }}'

@@ -1,0 +1,645 @@
+# =============================================================================
+# E-COMMERCE PLATFORM - DOCKER COMPOSE (PRODUCTION)
+# =============================================================================
+
+version: '3.9'
+
+services:
+  # ===========================================================================
+  # INFRAESTRUCTURA - BASE DE DATOS
+  # ===========================================================================
+
+  postgres-auth:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres-auth
+    hostname: postgres-auth
+    environment:
+      POSTGRES_DB: ${POSTGRES_AUTH_DB:-auth_db}
+      POSTGRES_USER: ${POSTGRES_AUTH_USER:-auth_user}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD:-auth_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+      - ./init-scripts/postgres-auth:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5433:5432"
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_AUTH_USER:-auth_user} -d ${POSTGRES_AUTH_DB:-auth_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  postgres-product:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres-product
+    hostname: postgres-product
+    environment:
+      POSTGRES_DB: ${POSTGRES_PRODUCT_DB:-product_db}
+      POSTGRES_USER: ${POSTGRES_PRODUCT_USER:-product_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PRODUCT_PASSWORD:-product_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_product_data:/var/lib/postgresql/data
+      - ./init-scripts/postgres-product:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5434:5432"
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_PRODUCT_USER:-product_user} -d ${POSTGRES_PRODUCT_DB:-product_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  postgres-cart:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres-cart
+    hostname: postgres-cart
+    environment:
+      POSTGRES_DB: ${POSTGRES_CART_DB:-cart_db}
+      POSTGRES_USER: ${POSTGRES_CART_USER:-cart_user}
+      POSTGRES_PASSWORD: ${POSTGRES_CART_PASSWORD:-cart_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_cart_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_CART_USER:-cart_user} -d ${POSTGRES_CART_DB:-cart_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  postgres-order:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres-order
+    hostname: postgres-order
+    environment:
+      POSTGRES_DB: ${POSTGRES_ORDER_DB:-order_db}
+      POSTGRES_USER: ${POSTGRES_ORDER_USER:-order_user}
+      POSTGRES_PASSWORD: ${POSTGRES_ORDER_PASSWORD:-order_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_order_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ORDER_USER:-order_user} -d ${POSTGRES_ORDER_DB:-order_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  postgres-inventory:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres-inventory
+    hostname: postgres-inventory
+    environment:
+      POSTGRES_DB: ${POSTGRES_INVENTORY_DB:-inventory_db}
+      POSTGRES_USER: ${POSTGRES_INVENTORY_USER:-inventory_user}
+      POSTGRES_PASSWORD: ${POSTGRES_INVENTORY_PASSWORD:-inventory_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_inventory_data:/var/lib/postgresql/data
+    ports:
+      - "5437:5432"
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INVENTORY_USER:-inventory_user} -d ${POSTGRES_INVENTORY_DB:-inventory_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  postgres-reporting:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres-reporting
+    hostname: postgres-reporting
+    environment:
+      POSTGRES_DB: ${POSTGRES_REPORTING_DB:-reporting_db}
+      POSTGRES_USER: ${POSTGRES_REPORTING_USER:-reporting_user}
+      POSTGRES_PASSWORD: ${POSTGRES_REPORTING_PASSWORD:-reporting_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_reporting_data:/var/lib/postgresql/data
+    ports:
+      - "5438:5432"
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_REPORTING_USER:-reporting_user} -d ${POSTGRES_REPORTING_DB:-reporting_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # ===========================================================================
+  # INFRAESTRUCTURA - CACHE & MESSAGING
+  # ===========================================================================
+
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    hostname: redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: ecommerce-rabbitmq
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin_password}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-ecommerce}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - messaging
+      - backend
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # ===========================================================================
+  # MICROSERVICIOS
+  # ===========================================================================
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+      target: production
+    container_name: ecommerce-api-gateway
+    hostname: api-gateway
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      PRODUCT_SERVICE_URL: http://product-service:3002
+      CART_SERVICE_URL: http://cart-service:3003
+      ORDER_SERVICE_URL: http://order-service:3004
+      INVENTORY_SERVICE_URL: http://inventory-service:3005
+      REPORTING_SERVICE_URL: http://reporting-service:3006
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3000:3000"
+    networks:
+      - frontend
+      - backend
+      - messaging
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: ecommerce-auth-service
+    hostname: auth-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3001
+      DB_HOST: postgres-auth
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_AUTH_DB:-auth_db}
+      DB_USER: ${POSTGRES_AUTH_USER:-auth_user}
+      DB_PASSWORD: ${POSTGRES_AUTH_PASSWORD:-auth_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-refresh-secret-key}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3001:3001"
+    networks:
+      - backend
+      - database
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3001/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  product-service:
+    build:
+      context: ./services/product-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: ecommerce-product-service
+    hostname: product-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3002
+      DB_HOST: postgres-product
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_PRODUCT_DB:-product_db}
+      DB_USER: ${POSTGRES_PRODUCT_USER:-product_user}
+      DB_PASSWORD: ${POSTGRES_PRODUCT_PASSWORD:-product_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin_password}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-ecommerce}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3002:3002"
+    networks:
+      - backend
+      - database
+      - messaging
+    depends_on:
+      postgres-product:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3002/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  cart-service:
+    build:
+      context: ./services/cart-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: ecommerce-cart-service
+    hostname: cart-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3003
+      DB_HOST: postgres-cart
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_CART_DB:-cart_db}
+      DB_USER: ${POSTGRES_CART_USER:-cart_user}
+      DB_PASSWORD: ${POSTGRES_CART_PASSWORD:-cart_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      INVENTORY_SERVICE_URL: http://inventory-service:3005
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3003:3003"
+    networks:
+      - backend
+      - database
+    depends_on:
+      postgres-cart:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3003/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: ecommerce-order-service
+    hostname: order-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3004
+      DB_HOST: postgres-order
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_ORDER_DB:-order_db}
+      DB_USER: ${POSTGRES_ORDER_USER:-order_user}
+      DB_PASSWORD: ${POSTGRES_ORDER_PASSWORD:-order_password}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin_password}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-ecommerce}
+      CART_SERVICE_URL: http://cart-service:3003
+      INVENTORY_SERVICE_URL: http://inventory-service:3005
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3004:3004"
+    networks:
+      - backend
+      - database
+      - messaging
+    depends_on:
+      postgres-order:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3004/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  inventory-service:
+    build:
+      context: ./services/inventory-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: ecommerce-inventory-service
+    hostname: inventory-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3005
+      DB_HOST: postgres-inventory
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_INVENTORY_DB:-inventory_db}
+      DB_USER: ${POSTGRES_INVENTORY_USER:-inventory_user}
+      DB_PASSWORD: ${POSTGRES_INVENTORY_PASSWORD:-inventory_password}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin_password}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-ecommerce}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3005:3005"
+    networks:
+      - backend
+      - database
+      - messaging
+    depends_on:
+      postgres-inventory:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3005/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  reporting-service:
+    build:
+      context: ./services/reporting-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: ecommerce-reporting-service
+    hostname: reporting-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3006
+      DB_HOST: postgres-reporting
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_REPORTING_DB:-reporting_db}
+      DB_USER: ${POSTGRES_REPORTING_USER:-reporting_user}
+      DB_PASSWORD: ${POSTGRES_REPORTING_PASSWORD:-reporting_password}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin_password}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-ecommerce}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3006:3006"
+    networks:
+      - backend
+      - database
+      - messaging
+    depends_on:
+      postgres-reporting:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3006/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+# ===========================================================================
+# NETWORKS
+# ===========================================================================
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+  database:
+    driver: bridge
+    internal: true
+  messaging:
+    driver: bridge
+
+# ===========================================================================
+# VOLUMES
+# ===========================================================================
+volumes:
+  postgres_auth_data:
+  postgres_product_data:
+  postgres_cart_data:
+  postgres_order_data:
+  postgres_inventory_data:
+  postgres_reporting_data:
+  redis_data:
+  rabbitmq_data:

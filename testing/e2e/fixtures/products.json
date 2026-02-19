@@ -1,0 +1,66 @@
+{
+  "laptop": {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "name": "Pro Laptop 15",
+    "description": "High-performance laptop for professionals",
+    "price": 1299.99,
+    "sku": "LAPTOP-001",
+    "category": "electronics",
+    "stockQuantity": 50,
+    "images": [
+      "/images/laptop-1.jpg",
+      "/images/laptop-2.jpg"
+    ],
+    "specifications": {
+      "processor": "Intel Core i7",
+      "ram": "16GB",
+      "storage": "512GB SSD",
+      "display": "15.6 inch 4K"
+    }
+  },
+  "headphones": {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "name": "Wireless Noise-Canceling Headphones",
+    "description": "Premium wireless headphones with active noise cancellation",
+    "price": 299.99,
+    "sku": "AUDIO-001",
+    "category": "electronics",
+    "stockQuantity": 100,
+    "images": [
+      "/images/headphones-1.jpg"
+    ],
+    "specifications": {
+      "batteryLife": "30 hours",
+      "connectivity": "Bluetooth 5.0",
+      "weight": "250g"
+    }
+  },
+  "smartwatch": {
+    "id": "550e8400-e29b-41d4-a716-446655440003",
+    "name": "Smart Watch Pro",
+    "description": "Advanced smartwatch with health tracking",
+    "price": 399.99,
+    "sku": "WATCH-001",
+    "category": "electronics",
+    "stockQuantity": 75,
+    "images": [
+      "/images/watch-1.jpg",
+      "/images/watch-2.jpg"
+    ],
+    "specifications": {
+      "batteryLife": "7 days",
+      "waterResistance": "50m",
+      "sensors": ["heart rate", "GPS", "SpO2"]
+    }
+  },
+  "lowStockProduct": {
+    "id": "550e8400-e29b-41d4-a716-446655440004",
+    "name": "Limited Edition Item",
+    "description": "Rare collectible item",
+    "price": 999.99,
+    "sku": "LIMITED-001",
+    "category": "collectibles",
+    "stockQuantity": 3,
+    "images": ["/images/limited-1.jpg"]
+  }
+}
