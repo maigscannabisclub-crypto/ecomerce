@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ecommerce-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ISSUER=ecommerce-api-gateway
+      - JWT_AUDIENCE=ecommerce-services
+      - SERVICE_AUTH_URL=http://auth-service:3001
+      - SERVICE_PRODUCTS_URL=http://products-service:3002
+      - SERVICE_CART_URL=http://cart-service:3003
+      - SERVICE_ORDERS_URL=http://orders-service:3004
+      - SERVICE_INVENTORY_URL=http://inventory-service:3005
+      - SERVICE_REPORTING_URL=http://reporting-service:3006
+      - RATE_LIMIT_WINDOW_MS=900000
+      - RATE_LIMIT_MAX_REQUESTS=1000
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  api-gateway-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: ecommerce-api-gateway-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - HOST=0.0.0.0
+      - JWT_SECRET=dev-jwt-secret-key
+      - JWT_ISSUER=ecommerce-api-gateway
+      - JWT_AUDIENCE=ecommerce-services
+      - SERVICE_AUTH_URL=http://localhost:3001
+      - SERVICE_PRODUCTS_URL=http://localhost:3002
+      - SERVICE_CART_URL=http://localhost:3003
+      - SERVICE_ORDERS_URL=http://localhost:3004
+      - SERVICE_INVENTORY_URL=http://localhost:3005
+      - SERVICE_REPORTING_URL=http://localhost:3006
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - ecommerce-network
+    profiles:
+      - dev
+
+networks:
+  ecommerce-network:
+    driver: bridge
+    external: true
